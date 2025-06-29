@@ -13,7 +13,7 @@ class MaskMorphologyNode:
             "required": {
                 "mask": ("MASK",),
                 "operation": (["dilate", "erode", "opening", "closing"],),
-                "kernel_size": ("INT", {"default": 3, "min": 1, "max": 31, "step": 2}),
+                "kernel_size": ("INT", {"default": 3, "min": 1, "max": 51, "step": 2}),
                 "iterations": ("INT", {"default": 1, "min": 1, "max": 10}),
             },
             "optional": {

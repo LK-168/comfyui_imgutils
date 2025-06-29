@@ -626,12 +626,14 @@ class BBoxFilter:
 NODE_CLASS_MAPPINGS = {
     "ImgutilsGenericDetector": ImgutilsGenericDetector,
     "MaskToBBoxNode": MaskToBBoxNode,
+    "BBoxToMaskNode": BBoxToMaskNode,
     "BBoxFilter": BBoxFilter,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "ImgutilsGenericDetector": "Imgutils Generic Detector",
     "MaskToBBoxNode": "Mask to BBox",
+    "BBoxToMaskNode": "BBox to Mask",
     "BBoxFilter": "BBox Filter",
 }
 

@@ -11,10 +11,17 @@ class CensorWithMask:
                 "image": ("IMAGE",),
                 "mask": ("MASK",),
                 "censor_mode": (["blur", "pixelate", "color"],),
-                "censor_value": ("FLOAT", {"default": 5.0, "min": 0.1, "max": 50.0})
             },
             "optional": {
+                # Blur mode parameters
+                "blur_radius": ("FLOAT", {"default": 5.0, "min": 0.1, "max": 50.0, "tooltip": "Blur radius for blur mode"}),
+                
+                # Pixelate mode parameters
+                "pixelate_size": ("INT", {"default": 10, "min": 1, "max": 100, "tooltip": "Pixel block size for pixelate mode"}),
+                
+                # Color mode parameters
                 "color_hex": ("STRING", {"default": "#000000", "tooltip": "Hex color for color mode (e.g., #FF0000 for red)"}),
+                "color_opacity": ("FLOAT", {"default": 1.0, "min": 0.0, "max": 1.0, "tooltip": "Opacity/transparency for color mode"}),
             }
         }
     
@@ -31,7 +38,7 @@ class CensorWithMask:
         except:
             return (0, 0, 0)  # Default to black if invalid
 
-    def censor_with_mask(self, image, mask, censor_mode, censor_value, color_hex="#000000"):
+    def censor_with_mask(self, image, mask, censor_mode, blur_radius=5.0, pixelate_size=10, color_hex="#000000", color_opacity=1.0):
         batch_size = image.shape[0]
         mask_batch_size = mask.shape[0]
         
@@ -52,11 +59,11 @@ class CensorWithMask:
             
             # Apply censoring based on mode
             if censor_mode == "blur":
-                censored_image_pil = self._apply_blur(image_pil, mask_pil, censor_value)
+                censored_image_pil = self._apply_blur(image_pil, mask_pil, blur_radius)
             elif censor_mode == "pixelate":
-                censored_image_pil = self._apply_pixelate(image_pil, mask_pil, censor_value)
+                censored_image_pil = self._apply_pixelate(image_pil, mask_pil, pixelate_size)
             elif censor_mode == "color":
-                censored_image_pil = self._apply_color(image_pil, mask_pil, censor_value, color_hex)
+                censored_image_pil = self._apply_color(image_pil, mask_pil, color_opacity, color_hex)
             else:
                 censored_image_pil = image_pil  # Fallback
             
@@ -69,15 +76,15 @@ class CensorWithMask:
         final_result = torch.stack(results)
         return (final_result,)
 
-    def _apply_blur(self, image_pil, mask_pil, censor_value):
+    def _apply_blur(self, image_pil, mask_pil, blur_radius):
         """Apply gaussian blur with mask"""
-        radius = max(1, int(censor_value))
+        radius = max(1, int(blur_radius))
         blurred_image_pil = image_pil.filter(ImageFilter.GaussianBlur(radius))
         return Image.composite(blurred_image_pil, image_pil, mask_pil)
 
-    def _apply_pixelate(self, image_pil, mask_pil, censor_value):
+    def _apply_pixelate(self, image_pil, mask_pil, pixelate_size):
         """Apply pixelation with mask"""
-        block_size = max(1, int(censor_value))
+        block_size = max(1, int(pixelate_size))
         width, height = image_pil.size
         
         # Calculate new dimensions
@@ -90,13 +97,14 @@ class CensorWithMask:
         
         return Image.composite(pixelated_image_pil, image_pil, mask_pil)
 
-    def _apply_color(self, image_pil, mask_pil, censor_value, color_hex):
+    def _apply_color(self, image_pil, mask_pil, color_opacity, color_hex):
         """Apply solid color fill with mask"""
         color_rgb = self.hex_to_rgb(color_hex)
         
         color_layer = Image.new('RGB', image_pil.size, color_rgb)
         
-        alpha_intensity = np.clip(censor_value / 50.0, 0.0, 1.0)  # Normalize to 0-1
+        # Use color_opacity directly as it's already normalized (0.0-1.0)
+        alpha_intensity = np.clip(color_opacity, 0.0, 1.0)
         mask_array = np.array(mask_pil) * alpha_intensity
         adjusted_mask = Image.fromarray(mask_array.astype(np.uint8), 'L')
         
