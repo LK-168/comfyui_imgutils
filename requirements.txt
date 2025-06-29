@@ -1,0 +1,7 @@
+torch
+numpy
+segment_anything
+Pillow
+opencv-python
+
+dghs-imgutils[gpu]
