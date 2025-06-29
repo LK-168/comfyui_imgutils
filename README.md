@@ -10,11 +10,10 @@ https://github.com/deepghs/imgutils
 
 
 Segment-Anything 模型需要手动下载到
-`ComfyUI\models\sams`目录下
+`ComfyUI\models\sams`目录下(impact-pack 同款路径)
 
 由于我没研究明白的原因，该路径不受`extra_model_paths.yaml`的影响（如果你有解决方案欢迎 PR）
 
-如果你使用了 impact-pack 的 sam 加载器，恭喜你不需要重新下载模型了，因为这部分我就是抄的人家的代码，你甚至可以用人家的加载器来加载模型
 
 ============================= LK ==================================
 
