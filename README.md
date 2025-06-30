@@ -6,7 +6,14 @@
 https://github.com/deepghs/imgutils
 模型文件全部由该库提供和管理下载，会自动下载到 
 `HF_HOME` 环境变量指定的目录下
-因此需要在 ComfyUI 的启动项中设置该环境变量
+
+**因此需要在 ComfyUI 的启动项中设置该环境变量**
+如果你是官方包，可以在 .\run_nvidia_gpu.bat 的开头中添加：
+```bat
+set "CURDIR=%cd%"
+set HF_HOME="%CURDIR%\(你想要的字目录)"
+```
+秋叶包可以不用设，默认是下载到 `.cache\huggingface\hub\` 下面
 
 
 Segment-Anything 模型需要手动下载到
@@ -20,7 +27,8 @@ Segment-Anything 模型需要手动下载到
 
 节点介绍：
 
-#### 检测节点
+#### BBox节点
+![alt text](md_img/bbox_nodes.png)
 - Imgutils Generic Detector
     - 支持多种 `imgutils` 提供的多种基于anime的检测模型
         - `detection_type`：检测类型     
@@ -32,14 +40,23 @@ Segment-Anything 模型需要手动下载到
 
 - Mask to BBox 、 BBox to Mask
     - 用于 `Mask` 和 `BBox` 之间的转换
+
 - BBoxFilter
-    - 用于过滤 `BBox`，可以根据置信度、面积和 标签进行过滤
-        - `labels`的值依照的是 `Imgutils Generic Detector` 输出的图片中bbox上标注的标签，可以输入多个，用逗号分隔
+    - 用于过滤 `BBox`，可以根据置信度、面积和标签进行过滤
+        - `labels`的值依照的是 `Imgutils Generic Detector` 的输出 `image with boxes` 中bbox上标注的标签，可以输入多个，用逗号分隔
+
+
 
 #### segment-anything节点
-基本上抄 Impact-Pack 的
+基本上抄的 Impact-Pack 
+
+![alt text](md_img/detailer_example.png)
+- SAMPredictorNode
+- SAMLoader for SAMPredictorNode
+    
 
 #### segment 节点
+![alt text](md_img/segment_nodes.png)
 - Imgutils Auto Segmenter
     - 仅能对图片进行 **前景和背景** 的分割
 
@@ -56,6 +73,8 @@ Segment-Anything 模型需要手动下载到
  
 #### Mask处理节点
 收录一些常用的 Mask 处理节点
+![alt text](md_img/mask_nodes.png)
+
 - Mask Morphology:
     - 提供了常用的形态学操作：膨胀、腐蚀、开运算和闭运算
     - 
@@ -69,8 +88,7 @@ Segment-Anything 模型需要手动下载到
 - Mask Info:
     - 显示mask的统计信息，如形状、覆盖率、范围和均值
 - MaskHelperLK:
-    - 如果你忘记了以上`Mask`处理节点的功能，可以使用这个节点查看，因为我知道这个东西只看节点名字很难知道效果
+    - 如果你忘记了以上`Mask`处理节点的功能，可以使用这个节点查看，因为我知道以上四个节点只看节点名字很难知道效果
 
 
-懒了，今天先写到这，传播民主与自由去了。
 

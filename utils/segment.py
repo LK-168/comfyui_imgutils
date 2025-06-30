@@ -104,7 +104,7 @@ class ImgutilsBBoxSegmenter(object):
         original_image_pil = Image.fromarray(img_np_255).convert("RGB")
 
         bbox_mask_np_0_1 = bbox_mask[0].cpu().numpy() # MASK is [B, H, W], values 0-1
-        bbox_mask_np = (bbox_mask_np_0_1 > 0.5).astype(np.float32)
+        bbox_mask_np = (bbox_mask_np_0_1 > 0.01).astype(np.float32)
 
         # If bbox_mask is empty, return original image and empty mask
         if not np.any(bbox_mask_np):
@@ -112,7 +112,17 @@ class ImgutilsBBoxSegmenter(object):
             empty_mask_tensor = torch.zeros((1, original_image_pil.height, original_image_pil.width), dtype=torch.float32)
             return (image, empty_mask_tensor)
 
-        # Get the main subject's mask from imgutils
+        # Find bounding box coordinates from the mask
+        bbox_indices = np.where(bbox_mask_np > 0)
+        if len(bbox_indices[0]) == 0:
+            print("BBox mask has no valid pixels. Returning original image and empty mask.")
+            empty_mask_tensor = torch.zeros((1, original_image_pil.height, original_image_pil.width), dtype=torch.float32)
+            return (image, empty_mask_tensor)
+        
+        min_y, max_y = bbox_indices[0].min(), bbox_indices[0].max() + 1
+        min_x, max_x = bbox_indices[1].min(), bbox_indices[1].max() + 1
+
+        # Get the main subject's mask from imgutils (full image)
         seg_mask_np_full = get_isnetis_mask(original_image_pil, scale=scale)
         # Normalize mask to 0-1 float32
         if seg_mask_np_full.dtype == np.uint8:
@@ -123,17 +133,16 @@ class ImgutilsBBoxSegmenter(object):
         # Combine imgutils mask with provided bbox_mask
         final_seg_mask_np = seg_mask_np_full * bbox_mask_np
 
-        # Get the segmented image based on mode
+        # Get the segmented image based on mode (full image)
         if segment_mode == "rgba_transparent":
             _, seg_image_pil_full = segment_rgba_with_isnetis(original_image_pil, scale=scale)
             if seg_image_pil_full.mode != 'RGBA':
                 seg_image_pil_full = seg_image_pil_full.convert('RGBA')
             
             # Apply the combined mask to the alpha channel of the segmented image
-            # Create an alpha channel from the final_seg_mask_np
             alpha_from_mask = Image.fromarray((final_seg_mask_np * 255).astype(np.uint8), mode='L')
             seg_image_pil_full.putalpha(alpha_from_mask)
-            output_image_pil = seg_image_pil_full
+            full_output_image_pil = seg_image_pil_full
 
         else: # RGB modes
             bg_color_val = 0 if segment_mode == "rgb_black_bg" else 255
@@ -149,20 +158,25 @@ class ImgutilsBBoxSegmenter(object):
                 seg_image_pil_full = seg_image_pil_full.convert('RGB')
             
             # Paste the imgutils segmented image onto the background using the combined mask
-            # Use the final_seg_mask_np to control what gets pasted
             paste_mask_pil = Image.fromarray((final_seg_mask_np * 255).astype(np.uint8), mode='L')
             background_image.paste(seg_image_pil_full, (0, 0), paste_mask_pil)
-            output_image_pil = background_image
+            full_output_image_pil = background_image
+
+        # Crop the segmented image to the bbox region
+        cropped_output_image_pil = full_output_image_pil.crop((min_x, min_y, max_x, max_y))
+        
+        # Crop the mask to the bbox region as well
+        cropped_seg_mask_np = final_seg_mask_np[min_y:max_y, min_x:max_x]
 
         # Format output
-        if output_image_pil:
-            output_image_np_255 = np.array(output_image_pil.convert("RGB"))
+        if cropped_output_image_pil:
+            output_image_np_255 = np.array(cropped_output_image_pil.convert("RGB"))
             output_image_tensor = torch.from_numpy(output_image_np_255.astype(np.float32) / 255.0).unsqueeze(0)
         else: # Fallback
             output_image_tensor = image
 
-        # Final mask is the combined mask
-        output_mask_tensor = torch.from_numpy(final_seg_mask_np).unsqueeze(0)
+        # Output the cropped mask
+        output_mask_tensor = torch.from_numpy(cropped_seg_mask_np).unsqueeze(0)
 
         return (output_image_tensor, output_mask_tensor)
 

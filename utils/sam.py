@@ -342,7 +342,7 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "SAMLoaderLK": "SAM Loader LK",
+    "SAMLoaderLK": "SAM Loader for SAMPredictorNode",
     "SAMPredictorNode": "SAM Predictor",
 }
 

@@ -276,13 +276,17 @@ class MaskInfoNode:
         }
     
     CATEGORY = "imgutils/mask"
-    RETURN_TYPES = ("MASK", "STRING")
-    RETURN_NAMES = ("mask", "info")
+    RETURN_TYPES = ("MASK", "FLOAT", "STRING", "FLOAT", "STRING")
+    RETURN_NAMES = ("mask", "coverage", "value_range", "mean_value", "detailed_info")
     FUNCTION = "get_mask_info"
 
     def get_mask_info(self, mask):
         batch_size = mask.shape[0]
         info_list = []
+        total_coverage = 0.0
+        total_mean = 0.0
+        overall_min = 1.0
+        overall_max = 0.0
         
         for i in range(batch_size):
             current_mask = mask[i].squeeze().cpu().numpy()
@@ -297,12 +301,30 @@ class MaskInfoNode:
             max_val = np.max(current_mask)
             mean_val = np.mean(current_mask)
             
+            # Update overall statistics
+            total_coverage += coverage
+            total_mean += mean_val
+            overall_min = min(overall_min, min_val)
+            overall_max = max(overall_max, max_val)
+            
             info = f"Batch {i}: Shape={shape}, Coverage={coverage:.1f}%, "
             info += f"Range=[{min_val:.3f}, {max_val:.3f}], Mean={mean_val:.3f}"
             info_list.append(info)
         
+        # Calculate averages
+        avg_coverage = total_coverage / batch_size
+        avg_mean = total_mean / batch_size
+        value_range = overall_max - overall_min
+        
+        # Create detailed info
         combined_info = "\n".join(info_list)
-        return (mask, combined_info)
+        if batch_size > 1:
+            combined_info += f"\n\nOverall Statistics:"
+            combined_info += f"\nAverage Coverage: {avg_coverage:.1f}%"
+            combined_info += f"\nOverall Range: [{overall_min:.3f}, {overall_max:.3f}]"
+            combined_info += f"\nAverage Mean: {avg_mean:.3f}"
+        
+        return (mask, avg_coverage, f"[{overall_min:.3f}, {overall_max:.3f}]", avg_mean, combined_info)
 
 class MaskHelperLK:
     """Helper class for above mask operations"""

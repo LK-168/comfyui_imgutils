@@ -108,13 +108,13 @@ class ImgutilsGenericDetector:
                 "draw_boxes": ("BOOLEAN", {"default": True}),
                 # Model specific parameters, always present for simplicity in this generic node
                 "level": ("STRING", {"default": "s", "options": ["n", "s"]}),
-                "version": ("STRING", {"default": "v1.1", "options": ["v0", "v1", "v1.1"]}),
+                "version": ("STRING", {"default": "", "options": ["v0", "v1", "v1.1"]}),
                 # "model_name": ("STRING", {"default": ""}),
             },
         }
 
     RETURN_TYPES = ("IMAGE", "MASK",BBOX, )
-    RETURN_NAMES = ("image_with_boxes", "detection_mask","detection_results",)
+    RETURN_NAMES = ("image_with_boxes", "detection_mask","detection_bbox",)
     FUNCTION = "detect"
 
     def detect(self, image, detection_type, conf_threshold, 
